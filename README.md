@@ -30,14 +30,7 @@ HexDiff contributes the following commands to the Command Palette (`Ctrl+Shift+P
 
 ## Release Notes
 
-### 0.0.1
-* Initial release of HexDiff core components.
-* Introduced custom Virtual Scrolling for infinite binary loading.
-* Included floating difference navigation UI (`O(log N)` rapid binary search jumping).
-* Added support for multiple side-by-side comparison tabs.
-* Added Decoded Text ASCII difference highlighting.
-* Implemented fixed sticky headers for large-scale viewing.
-* Integrated Git history repository comparisons.
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
 
-Known Issues:
-To track existing issues or report a new one, please visit the GitHub Issues page at https://github.com/viriliter/vscode-hexdiff/issues
+## Known Issues:
+To track existing issues or report a new one, please visit the GitHub Issues page at https://github.com/Viriliter/vscode-hexdiff/issues

@@ -111,6 +111,7 @@
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Viriliter/HexDiff.git"
-  }
+    "url": "https://github.com/Viriliter/vscode-hexdiff.git"
+  },
+  "publisher": "Viriliter"
 }
