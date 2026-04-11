@@ -7,7 +7,7 @@ View and compare binary files effortlessly right inside Visual Studio Code. **He
 * **Hex Editor:** Open any binary file to view and edit it in hexadecimal format.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Viriliter/vscode-hexdiff/main/images/ss3.png" width="80%" alt="Hex Editor View"/>
+  <img src="images/ss3.jpg" width="80%" alt="Hex Editor View"/>
   <br/>
   <em>Figure: Hex Editor View</em>
 </div>
@@ -15,7 +15,7 @@ View and compare binary files effortlessly right inside Visual Studio Code. **He
 * **Side-by-Side Binary Comparison:** Compare two binary files and visualize differences down to the byte level, color-coded for changed (red) and added (green).
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Viriliter/vscode-hexdiff/main/images/ss1.png" width="80%" alt="HexDiff side-by-side comparison"/>
+  <img src="images/ss1.jpg" width="80%" alt="HexDiff side-by-side comparison"/>
   <br/>
   <em>Figure: HexDiff side-by-side comparison with differences highlighted</em>
 </div>
@@ -25,7 +25,7 @@ View and compare binary files effortlessly right inside Visual Studio Code. **He
 * **Git Integration:** Seamlessly compare your local uncommitted binary file changes directly against the Git HEAD commit.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Viriliter/vscode-hexdiff/main/images/ss2.png" width="80%" alt="Git Integration"/>
+  <img src="images/ss2.jpg" width="80%" alt="Git Integration"/>
   <br/>
   <em>Figure: HexDiff Git integration showing uncommitted changes</em>
 </div>
