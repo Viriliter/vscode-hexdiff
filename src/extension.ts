@@ -60,8 +60,14 @@ export function activate(context: vscode.ExtensionContext) {
 			null // will be loaded dynamically in HexDiffPanel
 		);
 	});
+	const createCommand = vscode.commands.registerCommand('hexdiff.createBinaryFile', async () => {
+		const untitledUri = vscode.Uri.parse('untitled:Untitled.bin');
+		await vscode.commands.executeCommand('vscode.openWith', untitledUri, 'hexdiff.hexEditor');
+	});
+	
 	context.subscriptions.push(compareCommand);
 	context.subscriptions.push(compareGitCommand);
+	context.subscriptions.push(createCommand);
 	context.subscriptions.push(HexEditorProvider.register(context));
 }
 

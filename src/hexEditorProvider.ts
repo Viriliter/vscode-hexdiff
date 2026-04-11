@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { searchHexOrAscii, searchWebviewHtml } from './search';
 
 export class HexDocument implements vscode.CustomDocument {
     uri: vscode.Uri;
@@ -57,7 +58,13 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
         if (openContext.backupId) {
             documentData = new Uint8Array(await vscode.workspace.fs.readFile(vscode.Uri.parse(openContext.backupId)));
         } else {
-            documentData = new Uint8Array(await vscode.workspace.fs.readFile(uri));
+            if (openContext.untitledDocumentData) {
+                documentData = new Uint8Array(openContext.untitledDocumentData);
+            } else if (uri.scheme === 'untitled') {
+                documentData = new Uint8Array(0);
+            } else {
+                documentData = new Uint8Array(await vscode.workspace.fs.readFile(uri));
+            }
         }
         return new HexDocument(uri, documentData);
     }
@@ -121,6 +128,14 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
             } else if (e.type === 'copy') {
                 vscode.env.clipboard.writeText(e.text);
                 vscode.window.setStatusBarMessage(`Copied \${e.text.split(' ').length} bytes to clipboard`, 2000);
+            } else if (e.type === 'search') {
+                const results = searchHexOrAscii(e.query, e.searchType, document.documentData);
+                const queryLength = e.searchType === 'hex' ? e.query.replace(/\s/g, '').length / 2 : e.query.length;
+                webviewPanel.webview.postMessage({
+                    type: 'searchResult',
+                    matches: results,
+                    matchLength: queryLength
+                });
             }
         });
     }
@@ -145,8 +160,20 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                 .cell:hover { background: var(--vscode-editor-lineHighlightBackground); border-color: var(--vscode-focusBorder); }
                 .cell:focus { outline: 1px solid var(--vscode-focusBorder); background: var(--vscode-editor-lineHighlightBackground); }
                 .cell.selected { background: var(--vscode-editor-selectionBackground) !important; color: var(--vscode-editor-selectionForeground) !important; }
+                
+                /* Search highlight */
+                .search-match { background: var(--vscode-editor-findMatchBackground) !important; outline: 1px solid var(--vscode-editor-findMatchBorder); }
+                .search-active { background: var(--vscode-editor-findMatchHighlightBackground) !important; outline: 1px solid var(--vscode-editor-findMatchHighlightBorder); }
+                #search-widget { position: absolute; top: 10px; right: 20px; background: var(--vscode-editorWidget-background); border: 1px solid var(--vscode-editorWidget-border); box-shadow: 0 0 8px var(--vscode-widget-shadow); padding: 6px; z-index: 1000; display: flex; align-items: center; gap: 6px; border-radius: 4px; }
+                #search-widget input[type="text"] { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); padding: 4px; outline: none; width: 200px; }
+                #search-widget input[type="text"]:focus { border-color: var(--vscode-focusBorder); }
+                #search-widget select { background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border); padding: 3px; outline: none; }
+                #search-widget button { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; padding: 4px 8px; cursor: pointer; border-radius: 2px; }
+                #search-widget button:hover { background: var(--vscode-button-secondaryHoverBackground); }
+                .search-count { font-size: 12px; min-width: 50px; text-align: center; }
+
                 #add-byte-btn { display: inline-block; margin-top: 15px; margin-bottom: 20px; padding: 6px 12px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; cursor: pointer; border-radius: 2px; }
-                #add-byte-btn:hover { background: var(--vscode-button-hoverBackground); }
+                #add-byte-btn:hover { background: var(--vscode-button-hoverBackground); border-color: var(--vscode-focusBorder); }
                 #status-bar {
                     position: fixed; bottom: 0; left: 0; right: 0; height: 30px;
                     padding: 0 15px;
@@ -169,6 +196,7 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
             </style>
         </head>
         <body>
+            ${searchWebviewHtml()}
             <div id="viewport">
                 <div id="spacer"></div>
                 <div id="content-wrapper">
@@ -200,6 +228,11 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                 let isRequesting = false;
                 let pendingRefresh = false;
 
+                let searchMatches = [];
+                let searchMatchLength = 0;
+                let currentMatchIndex = 0;
+                let searchQuery = "";
+
                 document.getElementById('add-byte-btn').addEventListener('click', () => {
                     vscode.postMessage({ type: 'add' });
                 });
@@ -207,6 +240,83 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                 document.getElementById('viewport').addEventListener('scroll', () => {
                     requestVisible();
                 });
+
+                // Search Event Listeners
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'f') {
+                        e.preventDefault();
+                        const widget = document.getElementById('search-widget');
+                        widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+                        if (widget.style.display === 'flex') {
+                            document.getElementById('search-input').focus();
+                            document.getElementById('search-input').select();
+                        }
+                    } else if (e.key === 'Escape') {
+                        document.getElementById('search-widget').style.display = 'none';
+                        searchMatches = [];
+                        updateSearchCount();
+                        render(loadedStartRow * BYTES_PER_ROW);
+                    }
+                });
+
+                document.getElementById('search-input').addEventListener('input', (e) => {
+                    const query = e.target.value.trim();
+                    searchQuery = query;
+                    if (!query) {
+                        searchMatches = [];
+                        updateSearchCount();
+                        render(loadedStartRow * BYTES_PER_ROW);
+                        return;
+                    }
+                    const type = document.getElementById('search-type').value;
+                    vscode.postMessage({ type: 'search', query, searchType: type });
+                });
+                
+                document.getElementById('search-type').addEventListener('change', () => {
+                   document.getElementById('search-input').dispatchEvent(new Event('input'));
+                });
+
+                document.getElementById('search-prev').addEventListener('click', () => {
+                    if (searchMatches.length > 0) {
+                        currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+                        updateSearchCount();
+                        scrollToMatch(currentMatchIndex);
+                    }
+                });
+                
+                document.getElementById('search-next').addEventListener('click', () => {
+                    if (searchMatches.length > 0) {
+                        currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+                        updateSearchCount();
+                        scrollToMatch(currentMatchIndex);
+                    }
+                });
+
+                document.getElementById('search-close').addEventListener('click', () => {
+                    document.getElementById('search-widget').style.display = 'none';
+                    searchMatches = [];
+                    updateSearchCount();
+                    render(loadedStartRow * BYTES_PER_ROW);
+                });
+                
+                function updateSearchCount() {
+                    const countEl = document.getElementById('search-count');
+                    if (searchMatches.length === 0) {
+                        countEl.innerText = "0/0";
+                    } else {
+                        countEl.innerText = \`\$\{currentMatchIndex + 1\}/\$\{searchMatches.length\}\`;
+                    }
+                }
+                
+                function scrollToMatch(index) {
+                    if (!searchMatches || index < 0 || index >= searchMatches.length) return;
+                    const offset = searchMatches[index];
+                    const row = Math.floor(offset / BYTES_PER_ROW);
+                    const viewport = document.getElementById('viewport');
+                    const targetScrollTop = row * ROW_HEIGHT;
+                    viewport.scrollTop = Math.max(0, targetScrollTop - (viewport.clientHeight / 2));
+                    render(loadedStartRow * BYTES_PER_ROW);
+                }
 
                 function requestVisible(force = false) {
                     if (totalBytes === 0) {
@@ -265,6 +375,16 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                         }
                     } else if (message.type === 'refresh') {
                         requestVisible(true);
+                    } else if (message.type === 'searchResult') {
+                        searchMatches = message.matches;
+                        searchMatchLength = message.matchLength || 0;
+                        currentMatchIndex = 0;
+                        updateSearchCount();
+                        if (searchMatches.length > 0) {
+                            scrollToMatch(currentMatchIndex);
+                        } else {
+                            if (searchQuery) alert('No matches found for: ' + searchQuery);
+                        }
                     }
                 });
 
@@ -382,7 +502,9 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                         
                         const hex = document.createElement('div');
                         hex.className = 'hex';
-                        const asciiText = [];
+                        
+                        const ascii = document.createElement('div');
+                        ascii.className = 'ascii';
                         
                         for (let j = 0; j < BYTES_PER_ROW; j++) {
                             if (i + j < currentData.length) {
@@ -403,9 +525,9 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                                         e.target.innerText = newVal.toString(16).padStart(2, '0');
                                         
                                         const asciiContainer = e.target.parentElement.nextElementSibling;
-                                        const currentAscii = asciiContainer.innerText.split('');
-                                        currentAscii[j] = newVal >= 32 && newVal <= 126 ? String.fromCharCode(newVal) : '.';
-                                        asciiContainer.innerText = currentAscii.join('');
+                                        if (asciiContainer && asciiContainer.children[j]) {
+                                            asciiContainer.children[j].innerText = newVal >= 32 && newVal <= 126 ? String.fromCharCode(newVal) : '.';
+                                        }
 
                                         vscode.postMessage({ type: 'edit', offset: absOffset, value: newVal, oldValue: val });
                                     } else {
@@ -470,21 +592,42 @@ export class HexEditorProvider implements vscode.CustomEditorProvider<HexDocumen
                                         }
                                     }
                                 });
-                                hex.appendChild(cell);
                                 
-                                asciiText.push(val >= 32 && val <= 126 ? String.fromCharCode(val) : '.');
+                                // Highlight search matches
+                                const charSpan = document.createElement('span');
+                                charSpan.className = 'ascii-char';
+                                charSpan.innerText = val >= 32 && val <= 126 ? String.fromCharCode(val) : '.';
+                                if (searchMatches && searchMatches.length > 0) {
+                                    // optimize highlight checking
+                                    const activeStart = searchMatches[currentMatchIndex];
+                                    const activeEnd = activeStart + searchMatchLength;
+                                    
+                                    const isMatch = searchMatches.some(m => absOffset >= m && absOffset < m + searchMatchLength);
+                                    if (isMatch) {
+                                        cell.classList.add('search-match');
+                                        charSpan.classList.add('search-match');
+                                    }
+                                    if (absOffset >= activeStart && absOffset < activeEnd) {
+                                        cell.classList.add('search-active');
+                                        charSpan.classList.add('search-active');
+                                    }
+                                }
+
+                                hex.appendChild(cell);
+                                ascii.appendChild(charSpan);
                             } else {
                                 const cell = document.createElement('div');
                                 cell.className = 'cell';
                                 cell.innerText = '  ';
                                 hex.appendChild(cell);
+                                
+                                const charSpan = document.createElement('span');
+                                charSpan.className = 'ascii-char';
+                                charSpan.innerText = ' ';
+                                ascii.appendChild(charSpan);
                             }
                         }
                         row.appendChild(hex);
-                        
-                        const ascii = document.createElement('div');
-                        ascii.className = 'ascii';
-                        ascii.innerText = asciiText.join('');
                         row.appendChild(ascii);
                         
                         content.appendChild(row);

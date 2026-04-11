@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "HexDiff",
   "description": "View and compare binary files with HexDiff.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -19,20 +19,15 @@
     "configuration": {
       "title": "HexDiff",
       "properties": {
-        "hexdiff.pageSize": {
-          "type": "integer",
-          "default": 102400,
-          "description": "Page size in bytes for rendering Hex data. Decrease to improve rendering performance on large files."
-        },
-        "hexdiff.diffBackgroundColor": {
+        "hexdiff.theme": {
           "type": "string",
-          "default": "rgba(255, 0, 0, 0.3)",
-          "description": "Background color for changed/different bytes in diff view (e.g. rgba(255, 0, 0, 0.3) or #FF000044)."
-        },
-        "hexdiff.addedBackgroundColor": {
-          "type": "string",
-          "default": "rgba(0, 255, 0, 0.3)",
-          "description": "Background color for added/missing bytes in diff view."
+          "enum": [
+            "Auto",
+            "Light",
+            "Dark"
+          ],
+          "default": "Auto",
+          "description": "Theme mode for differences highlighting. Auto inherits the IDE theme color."
         },
         "hexdiff.fontFamily": {
           "type": "string",
@@ -44,7 +39,7 @@
     "customEditors": [
       {
         "viewType": "hexdiff.hexEditor",
-        "displayName": "Hex Editor",
+        "displayName": "HexDiff",
         "selector": [
           {
             "filenamePattern": "*.bin"
@@ -81,6 +76,10 @@
       {
         "command": "hexdiff.compareWithGit",
         "title": "Compare with Git (HexDiff)"
+      },
+      {
+        "command": "hexdiff.createBinaryFile",
+        "title": "Create a new binary file (HexDiff)"
       }
     ]
   },

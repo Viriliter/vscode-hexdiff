@@ -10,3 +10,10 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 * Added Decoded Text ASCII difference highlighting.
 * Implemented fixed sticky headers for large-scale viewing.
 * Integrated Git history repository comparisons.
+
+### Version 0.0.2
+* In difference mode, the differences can be applied to the left or right file, allowing users to easily merge changes.
+* Added support for comparing files from Git repositories, enabling users to compare different versions of files directly from their Git history.
+* Added a command to create new binary files, allowing users to start with an empty file and edit it in the hex editor.
+* Added support for searching within the hex editor, allowing users to find specific byte patterns or ASCII text within the binary data.
+* Some bug fixes and visual improvements.
