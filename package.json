@@ -2,7 +2,7 @@
   "name": "hexdiff",
   "displayName": "HexDiff",
   "description": "View and compare binary files with HexDiff.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -42,13 +42,7 @@
         "displayName": "HexDiff",
         "selector": [
           {
-            "filenamePattern": "*.bin"
-          },
-          {
-            "filenamePattern": "*.dat"
-          },
-          {
-            "filenamePattern": "*.hex"
+            "filenamePattern": "*"
           }
         ],
         "priority": "option"

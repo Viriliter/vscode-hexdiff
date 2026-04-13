@@ -17,3 +17,7 @@ All notable changes to the "hexdiff" extension will be documented in this file.
 * Added a command to create new binary files, allowing users to start with an empty file and edit it in the hex editor.
 * Added support for searching within the hex editor, allowing users to find specific byte patterns or ASCII text within the binary data.
 * Some bug fixes and visual improvements.
+
+
+### Version 0.0.3
+* ```package.json``` is updated so that the extension supports any file type.
