@@ -49,6 +49,34 @@ HexDiff contributes the following commands to the Command Palette (`Ctrl+Shift+P
 
 - To use **Compare with Git (HexDiff)**, you must have `git` installed in your system PATH, and the selected file must inherently belong to a Git repository.
 
+## The Compilation and Packaging
+
+- Clone the project and navigate to it:
+```bash
+git clone https://github.com/Viriliter/vscode-hexdiff.git; cd vscode-hexdiff
+```
+
+- Install project dependencies and VS Code Extension CLI (required for packaging):
+```bash
+npm install
+npm install -g @vscode/vsce
+```
+
+- Compile the project:
+```bash
+npm run compile
+```
+
+- Create the package:
+```bash
+npx @vscode/vsce package
+```
+
+After succesfull packaging, a file with an extension ```*.vsix``` is created under the project path. Use ```Install from VSIX...``` option from VS Code and select the generated package to install the extension. Alternatively, run following command to install the generated package into your local VS Code instance:
+```bash
+code --install-extension *.vsix
+```
+
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
